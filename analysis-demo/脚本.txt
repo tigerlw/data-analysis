@@ -1,2 +1,11 @@
 
 mongoexport -h 10.7.19.25 --port 27019 -u liuwei -p cnKYZdmeMsTEZ9Md  -d bss -c FLOW_GlocM_2020_2 --csv -f _id,customerId,userName,imei,visitCountry,tradeType,flowSize,startTime,endTime,createDate --query='{endTime:{$gte:1582498800000,$lte:1582502400000}}' -o cdr.dat
+
+
+
+select k.flowtag,count(1) as cnt,sum(k.flowSize/1024) as total_flow,sum(k.flowSize/1024)/total as percent
+ from (
+select ceil(t.flowSize/1024/664 )*664 as flowtag,t.flowSize  
+from cdr t where t.tradeType in ('0','1','5','8') and t.flowSize<30632704 ) k,
+(select sum(flowSize/1024) as total from cdr) m
+GROUP BY k.flowtag ORDER BY k.flowtag
