@@ -9,3 +9,12 @@ select ceil(t.flowSize/1024/664 )*664 as flowtag,t.flowSize
 from cdr t where t.tradeType in ('0','1','5','8') and t.flowSize<30632704 ) k,
 (select sum(flowSize/1024) as total from cdr) m
 GROUP BY k.flowtag ORDER BY k.flowtag
+
+
+CREATE TABLE `cdr_rs` (
+  `flowtag` decimal(19,0) DEFAULT NULL,
+  `cnt` bigint(21) NOT NULL DEFAULT '0',
+  `total_flow` decimal(45,4) DEFAULT NULL,
+  `accum_flow` decimal(45,4) DEFAULT NULL,
+  `percent` decimal(53,8) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;

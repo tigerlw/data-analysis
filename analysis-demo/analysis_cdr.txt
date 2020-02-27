@@ -1,0 +1,70 @@
+DROP PROCEDURE
+IF EXISTS analysis_cdr;
+
+CREATE PROCEDURE analysis_cdr ()
+BEGIN
+
+DECLARE tagvar bigint;
+DECLARE cntvar bigint;
+DECLARE totalvar float;
+DECLARE percentvar DOUBLE;
+declare done int;
+
+declare cdr_cur CURSOR FOR
+   select flowtag,cnt,total_flow,percent from cdr_rs_tmp t ORDER BY t.flowtag;
+
+DECLARE CONTINUE HANDLER FOR NOT FOUND SET done=1;
+
+TRUNCATE table cdr_rs;
+
+DROP TABLE IF EXISTS cdr_rs_tmp;
+
+CREATE TABLE cdr_rs_tmp AS SELECT
+	k.flowtag,
+	count(1) AS cnt,
+	sum(k.flowSize / 1024) AS total_flow,
+	sum(k.flowSize / 1024) / total AS percent
+FROM
+	(
+		SELECT
+			ceil(t.flowSize / 1024 / 664) * 664 AS flowtag,
+			t.flowSize
+		FROM
+			cdr t
+		WHERE
+			t.tradeType IN ('0', '1', '5', '8')
+	) k,
+	(
+		SELECT
+			sum(flowSize / 1024) AS total
+		FROM
+			cdr
+	) m
+GROUP BY
+	k.flowtag;
+
+
+
+
+open cdr_cur;
+
+posLoop:LOOP
+
+    FETCH cdr_cur into tagvar,cntvar,totalvar,percentvar;
+
+    IF done=1 THEN    
+      LEAVE posLoop;  
+    END IF; 
+    
+    INSERT into cdr_rs(flowtag,cnt,total_flow,accum_flow,percent)
+    select tagvar,cntvar,totalvar,sum(total_flow) as accum_flow,sum(percent) as percent
+    from cdr_rs_tmp t where t.flowtag<=tagvar;
+
+END LOOP posLoop;
+
+CLOSE cdr_cur;
+    
+
+
+
+END;
